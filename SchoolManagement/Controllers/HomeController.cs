@@ -6,7 +6,7 @@ using System.Web.Mvc;
 
 namespace SchoolManagement.Controllers
 {
-    [Authorize(Roles = "Admin,Teacher")]
+    [Authorize(Roles = "Admin,Teacher,Student,Teacher")]
     public class HomeController : Controller
     {
         public ActionResult Index()

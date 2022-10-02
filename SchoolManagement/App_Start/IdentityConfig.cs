@@ -40,7 +40,7 @@ namespace SchoolManagement
         {
         }
 
-        public static ApplicationUserManager Create(IdentityFactoryOptions<ApplicationUserManager> options, IOwinContext context) 
+        public static ApplicationUserManager Create(IdentityFactoryOptions<ApplicationUserManager> options, IOwinContext context)
         {
             var manager = new ApplicationUserManager(new UserStore<ApplicationUser>(context.Get<ApplicationDbContext>()));
             // Configure validation logic for usernames
@@ -81,7 +81,7 @@ namespace SchoolManagement
             var dataProtectionProvider = options.DataProtectionProvider;
             if (dataProtectionProvider != null)
             {
-                manager.UserTokenProvider = 
+                manager.UserTokenProvider =
                     new DataProtectorTokenProvider<ApplicationUser>(dataProtectionProvider.Create("ASP.NET Identity"));
             }
             return manager;
@@ -132,41 +132,60 @@ namespace SchoolManagement
             base.Seed(context);
         }
 
-        //Create User=Admin@Admin.com with password=Admin@123456 in the Admin role        
+        //Create default user        
         public static void InitializeIdentityForEF(ApplicationDbContext db)
         {
             var userManager = HttpContext.Current.GetOwinContext().GetUserManager<ApplicationUserManager>();
             var roleManager = HttpContext.Current.GetOwinContext().Get<ApplicationRoleManager>();
-            const string email = "hassan@segasoftbd.com";
-            const string password = "123456";
-            const string roleName = "Admin";
-            const string username = "admin";
-            string[] roleNames = { "Admin", "Student", "Teacher" };
-            //Create Role Admin if it does not exist
-            var role = roleManager.FindByName(roleName);
-            if (role == null)
+
+            // Application roles
+            //string[] roleNames = { "Admin", "Student", "Teacher", "Employee" };
+
+            // To add default user
+            string[] userFirst = { "Admin@gmail.com", "123456", "Admin", "admin" };
+            string[] userSecond = { "Student@gmail.com", "123456", "Student", "student" };
+            string[] userThird = { "Teacher@gmail.com", "123456", "Teacher", "teacher" };
+            string[] userFourth = { "Employee@gmail.com", "123456", "Employee", "employee" };
+            List<string[]> defaultUserData = new List<string[]>();
+            defaultUserData.Add(userFirst);
+            defaultUserData.Add(userSecond);
+            defaultUserData.Add(userThird);
+            defaultUserData.Add(userFourth);
+
+
+            foreach (var userList in defaultUserData)
             {
-                foreach (var myRole in roleNames)
+                string userEmail = userList[0];
+                string userPassword = userList[1];
+                string userRole = userList[2];
+                string userName = userList[3];
+
+                //Create user and role if it does not exist
+                var role = roleManager.FindByName(userList[2]);
+                if (role == null)
                 {
-                    role = new IdentityRole(myRole);
-                    var roleresult = roleManager.Create(role);
+                    role = new IdentityRole(userRole);
+
+                    roleManager.Create(role);
+
+                    var user = userManager.FindByName(userName);
+                    if (user == null)
+                    {
+                        user = new ApplicationUser { UserName = userName, Email = userEmail };
+                        var result = userManager.Create(user, userPassword);
+                        result = userManager.SetLockoutEnabled(user.Id, false);
+                    }
+
+                    // Add user to Role if not already added
+                    var rolesForUser = userManager.GetRoles(user.Id);
+                    if (!rolesForUser.Contains(role.Name))
+                    {
+                        userManager.AddToRole(user.Id, role.Name);
+                    }
                 }
             }
-
-            var user = userManager.FindByName(username);
-            if (user == null)
-            {
-                user = new ApplicationUser { UserName = username, Email = email };
-                var result = userManager.Create(user, password);
-                result = userManager.SetLockoutEnabled(user.Id, false);
-            }
-
-            // Add user admin to Role Admin if not already added
-            var rolesForUser = userManager.GetRoles(user.Id);
-            if (!rolesForUser.Contains(role.Name))
-            {
-                var result = userManager.AddToRole(user.Id, role.Name);
-            }
         }
+
+
     }
 }
